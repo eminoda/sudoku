@@ -1,0 +1,27 @@
+{
+  "name": "sudoku",
+  "version": "1.0.0",
+  "description": "sudoku 数独计算",
+  "main": "sudoku.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "start": "webpack-dev-server --config ./build/webpack.config.js",
+    "build": "webpack --config ./build/webpack.config.js",
+    "test": "jest --config ./test/unit/jest.conf.js --notify "
+  },
+  "keywords": [
+    "sudoku"
+  ],
+  "author": "eminoda",
+  "license": "ISC",
+  "devDependencies": {
+    "html-webpack-plugin": "^3.2.0",
+    "jest": "^23.5.0",
+    "vue": "^2.5.17",
+    "webpack": "^4.17.1",
+    "webpack-cli": "^3.1.0",
+    "webpack-dev-server": "^3.1.6"
+  }
+}
