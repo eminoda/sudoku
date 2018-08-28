@@ -4,28 +4,19 @@
 <head>
     <meta charset="UTF-8">
     <title>sudoku</title>
-    <style>
-        .item {
-            display: inline-block;
-            width: 50px;
-            height: 50px;
-        }
-
-        .line {}
-    </style>
 </head>
 
 <body>
     <div id="app">
+        <button @click="calc()">calc</button>
         <div class="line" v-for="(yItem,yIndex) in boards">
             <div class="item" v-for="(xItem,xIndex) in yItem">
-                <span>{{xItem.num}}</span>
-                <span v-if="xItem.candidateNums.length>0">
+                <span :class="xItem.status=='frozen'?'frozen':''" v-if="xItem.candidateNums.length<=1">{{xItem.num}}</span>
+                <span v-if="xItem.candidateNums.length>1">
                     <span v-for="item in xItem.candidateNums">{{item}}</span>
                 </span>
             </div>
         </div>
-        <button @click="calc()">calc</button>
     </div>
 </body>
 

@@ -24,23 +24,20 @@ describe('Test sudoku', () => {
     })
     test('Grid create', () => {
         let grid = new Grid(1, 2);
-        expect(grid.startPointInGrid).toEqual({
-            row: 0,
-            col: 0
-        });
-        grid = new Grid(8, 8);
-        expect(grid.startPointInGrid).toEqual({
-            row: 2,
-            col: 2
-        });
+        expect(grid.startPointInGrid.row).toEqual(0);
+        expect(grid.startPointInGrid.col).toEqual(0);
     })
     test('Sudoku create', () => {
         let sudoku = new Sudoku(originData);
         expect(sudoku.boards[0][0].num).toEqual(3);
     })
-    test('Sudoku getAvailableNums', () => {
+    test('Sudoku getAviableNumsByLineNums', () => {
         let sudoku = new Sudoku(originData);
-        expect(sudoku.getAvailableNums([3, 0, 0, 2, 8, 0, 4, 0, 5])).toEqual([1, 6, 7, 9]);
+        expect(sudoku.getAviableNumsByLineNums([3, 0, 0, 2, 8, 0, 4, 0, 5])).toEqual([1, 6, 7, 9]);
+    })
+    test('Sudoku removeDuplicateNums', () => {
+        let sudoku = new Sudoku(originData);
+        expect(sudoku.removeDuplicateNums([1, 2, 0, 0, 0, 0, 0, 0, 0], [1, 6, 7, 9])).toEqual([6, 7, 9]);
     })
     test('Sudoku removeDuplicateRow', () => {
         let sudoku = new Sudoku(originData);
@@ -50,8 +47,29 @@ describe('Test sudoku', () => {
     })
     test('Sudoku removeDuplicateCol', () => {
         let sudoku = new Sudoku(originData);
-        let point = sudoku.boards[8][6];
+        let point = sudoku.boards[0][1];
         sudoku.removeDuplicateRow(point);
-        expect(point.candidateNums).toEqual([5, 7, 8, 9])
+        sudoku.removeDuplicateCol(point);
+        expect(point.candidateNums).toEqual([6, 7, 9])
+    })
+    test('Sudoku removeDuplicateCol2', () => {
+        let sudoku = new Sudoku(originData);
+        let point = sudoku.boards[0][1];
+        sudoku.removeDuplicateCol(point);
+        expect(point.candidateNums).toEqual([3, 4, 5, 6, 7, 8, 9])
+    })
+    test('Sudoku removeDuplicateSquare', () => {
+        let sudoku = new Sudoku(originData);
+        let point = sudoku.boards[0][1];
+        sudoku.removeDuplicateRow(point);
+        sudoku.removeDuplicateCol(point);
+        sudoku.removeDuplicateSquare(point)
+        expect(point.candidateNums).toEqual([6, 7])
+    })
+    test('Sudoku getTwoLinePoint', () => {
+        let sudoku = new Sudoku(originData);
+        let point = sudoku.boards[0][1];
+        expect(sudoku.getTwoLinePoint(point).row).toEqual([0, 2]);
+        expect(sudoku.getTwoLinePoint(point).col).toEqual([1, 2]);
     })
 });

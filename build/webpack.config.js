@@ -1,8 +1,10 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 module.exports = {
+    mode: 'development',
+    context: path.resolve(__dirname, '..', 'src'),
     entry: {
-        sudoku: path.join(__dirname, '../src/index.js')
+        sudoku: './index.js'
     },
     output: {
         filename: '[name].js',
@@ -15,15 +17,25 @@ module.exports = {
             'vue': 'vue/dist/vue.js'
         }
     },
-    mode: 'development',
+    module: {
+        rules: [{
+            test: /\.scss$/,
+            use: [
+                "style-loader", // creates style nodes from JS strings
+                "css-loader", // translates CSS into CommonJS
+                "sass-loader" // compiles Sass to CSS, using Node Sass by default
+            ]
+        }]
+    },
     plugins: [new HtmlWebpackPlugin({
         filename: 'index.html',
-        template: 'index.html',
+        template: '../index.html',
         inject: true
     })],
     devServer: {
-        contentBase: './dist',
-        compress: true,
+        contentBase: path.join(__dirname, 'dist'),
+        compress: false,
+        host: '0.0.0.0',
         port: 9000
     }
 };

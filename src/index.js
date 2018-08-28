@@ -1,5 +1,7 @@
+require('./index.scss');
 const Vue = require('vue');
-const Sudoku = require('./Sudoku');
+const Sudoku = require('./Sudoku.js');
+const Point = require('./Point.js');
 let sudoku = new Sudoku([
     [3, 0, 0, 2, 8, 0, 4, 0, 5],
     [0, 2, 0, 0, 0, 0, 7, 0, 0],
@@ -10,7 +12,7 @@ let sudoku = new Sudoku([
     [0, 0, 6, 8, 0, 4, 1, 2, 3],
     [0, 0, 3, 0, 0, 0, 0, 5, 0],
     [2, 0, 4, 0, 3, 1, 0, 0, 6]
-]);
+], Point);
 var app = new Vue({
     el: '#app',
     data: {
@@ -18,10 +20,7 @@ var app = new Vue({
     },
     methods: {
         calc: function () {
-            for (let x = 0; x < 9; x++) {
-                sudoku.removeDuplicateRow(this.boards[0][x]);
-                this.boards = sudoku.boards;
-            }
+            sudoku.calc();
         }
     }
 })
