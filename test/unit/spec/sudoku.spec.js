@@ -66,10 +66,21 @@ describe('Test sudoku', () => {
         sudoku.removeDuplicateSquare(point)
         expect(point.candidateNums).toEqual([6, 7])
     })
-    test('Sudoku getTwoLinePoint', () => {
+    test('Sudoku canCalcContinue', () => {
+        let sudoku = new Sudoku(originData);
+        let oldBoard = JSON.parse(JSON.stringify(sudoku.boards));
+        let point = sudoku.boards[0][1];
+        sudoku.excludeCalc();
+        expect(sudoku.canCalcContinue(oldBoard)).toEqual(3)
+    })
+    test('Sudoku canCalcContinue', () => {
         let sudoku = new Sudoku(originData);
         let point = sudoku.boards[0][1];
-        expect(sudoku.getTwoLinePoint(point).row).toEqual([0, 2]);
-        expect(sudoku.getTwoLinePoint(point).col).toEqual([1, 2]);
+        sudoku.removeDuplicateRow(point);
+        sudoku.removeDuplicateCol(point);
+        sudoku.removeDuplicateSquare(point);
+        sudoku.saveCachePoints();
+        sudoku.buildBranch();
+        expect(sudoku.branchs).toEqual(3)
     })
 });

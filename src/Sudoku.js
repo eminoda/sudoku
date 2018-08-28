@@ -15,6 +15,7 @@ function Sudoku(originData) {
     }(require('./Point.js')));
     this.ruleNums = [1, 2, 3, 4, 5, 6, 7, 8, 9];
     this.cachePoints = [];
+    this.branchs = []
 }
 /**
  * 根据lineNums，获取某行合法数值
@@ -68,95 +69,31 @@ Sudoku.prototype.removeDuplicateCol = function (point) {
     }
 }
 Sudoku.prototype.removeDuplicateSquare = function (point) {
-    let Grid = require('./Grid.js');
-    let startPointInGrid = new Grid(point.row, point.col).startPointInGrid;
-    let originNums = []
-    for (let y = startPointInGrid.col; y < startPointInGrid.col + 3; y++) {
-        for (let x = startPointInGrid.row; x < startPointInGrid.row + 3; x++) {
-            this.boards[y][x].num && originNums.push(this.boards[y][x].num);
-        }
-    }
-    point.setCandidateNums(this.removeDuplicateNums(originNums, point.candidateNums));
-}
-Sudoku.prototype.caclOneByOne = function (point) {
-    for (let y = point.col; y < 9; y++) {
-        for (let x = point.row; x < 9; x++) {
-            let point = this.boards[y][x];
-            if (point.num) {
-                continue;
-            }
-            if (point.candidateNums.length > 0) {
-                if (point.tryTime == 0) {
-                    this.cachePoints.push(point);
-                } else {
-                    this.cachePoints[this.cachePoints.length].setTryTime();
-                }
-                point.num = point.candidateNums[point.tryTime];
-                try {
-                    this.removeDuplicateSquare(point)
-                    this.removeDuplicateRow(point);
-                    this.removeDuplicateCol(point);
-                    this.validateSquare(point);
-                    this.validateRow(point);
-                    this.validateCol(point);
-                } catch (err) {
-                    console.log(err);
-                }
+    if (!point.num) {
+        let Grid = require('./Grid.js');
+        let startPointInGrid = new Grid(point.row, point.col).startPointInGrid;
+        let originNums = []
+        for (let y = startPointInGrid.col; y < startPointInGrid.col + 3; y++) {
+            for (let x = startPointInGrid.row; x < startPointInGrid.row + 3; x++) {
+                this.boards[y][x].num && originNums.push(this.boards[y][x].num);
             }
         }
+        point.setCandidateNums(this.removeDuplicateNums(originNums, point.candidateNums));
     }
 }
-Sudoku.prototype.removeDuplicateTwoLine = function (point) {
-    let twoLinePoint = this.getTwoLinePoint(point);
-    for (let i = 0; i < point.candidateNums.length; i++) {
-        let appearNum = 0;
-        for (let y = 0; y < 9; y++) {
-            if (this.boards[y][twoLinePoint.row[0]].num == point.candidateNums[0]) {
-                appearNum++;
-            }
-            if (this.boards[y][twoLinePoint.row[1]].num == point.candidateNums[0]) {
-                appearNum++;
-            }
-        }
-        if (appearNum == 2) {
-            point.candidateNums(0, 1);
-        }
-    }
-}
-Sudoku.prototype.getTwoLinePoint = function (point) {
-    let twoLinePoint = {
-        row: [],
-        col: []
-    }
-    let Grid = require('./Grid.js');
-    let startPointInGrid = new Grid(point.row, point.col).startPointInGrid;
-    if (point.row == startPointInGrid.row) {
-        twoLinePoint.row.push(point.row + 1);
-        twoLinePoint.row.push(point.row + 2);
-    } else if (point.row = startPointInGrid.row + 1) {
-        twoLinePoint.row.push(point.row - 1);
-        twoLinePoint.row.push(point.row + 1);
-    } else {
-        twoLinePoint.row.push(point.row - 2);
-        twoLinePoint.row.push(point.row - 1);
-    }
-    if (point.col == startPointInGrid.col) {
-        twoLinePoint.col.push(point.col + 1);
-        twoLinePoint.col.push(point.col + 2);
-    } else if (point.col = startPointInGrid.col + 1) {
-        twoLinePoint.col.push(point.col - 1);
-        twoLinePoint.col.push(point.col + 1);
-    } else {
-        twoLinePoint.col.push(point.col - 2);
-        twoLinePoint.col.push(point.col - 1);
-    }
-    return twoLinePoint;
-}
+
 Sudoku.prototype.calc = function () {
-    let oldBoard = [].concat(this.boards);
+    let oldBoard = JSON.parse(JSON.stringify(this.boards));
+    this.excludeCalc();
+    if (!this.canCalcContinue(oldBoard)) {
+        this.saveCachePoints();
+        this.oneByOnecandidateNumsCalc();
+    }
+}
+Sudoku.prototype.excludeCalc = function () {
     for (let y = 0; y < 9; y++) {
         for (let x = 0; x < 9; x++) {
-            if (x == 7 && y == 2) {
+            if (x == 3 && y == 1) {
                 console.log('debugger');
             }
             let point = this.boards[y][x];
@@ -168,21 +105,59 @@ Sudoku.prototype.calc = function () {
             this.validateCol(point);
         }
     }
-    let newBoard = this.boards;
-    console.log(this.canCalcContinue(oldBoard));
 }
-Sudoku.prototype.canCalcContinue = function (oldBoard) {
+Sudoku.prototype.buildBranch = function () {
+    let tempBranchs = []
+    for (let i = 0; i < this.cachePoints.length; i++) {
+        tempBranchs.push(this.setBranch[this.cachePoints[i]]);
+    }
+    for (let b = 0; b < tempBranchs.length; b++) {
+        this.branchs.push({
+            index: b,
+            branchs: []
+        })
+    }
+}
+Sudoku.prototype.setBranch = function (point) {
+    let branchs = [];
+    for (let j = 0; j < point.candidateNums; j++) {
+        branchs.push({
+            row: point.row,
+            col: point.col,
+            num: point.candidateNums[j],
+            index: j
+        });
+    }
+    return branchs;
+}
+Sudoku.prototype.resetCachePoints = function () {
+    for (let i = 0; i < this.cachePoints.length; i++) {
+        this.boards[this.cachePoints[i].col][this.cachePoints[i].row].num = this.cachePoints[i].num;
+    }
+}
+Sudoku.prototype.saveCachePoints = function () {
+    let oldBoard = JSON.parse(JSON.stringify(this.boards));
     for (let y = 0; y < 9; y++) {
         for (let x = 0; x < 9; x++) {
-            if (x == 7 && y == 2) {
-                console.log('debugger');
+            let point = oldBoard[y][x];
+            if (point.num) {
+                continue;
             }
-            if (oldBoard[y][x].num != this.boards[y][x].num) {
-                return true
+            this.cachePoints.push(point);
+        }
+    }
+}
+Sudoku.prototype.canCalcContinue = function (oldBoard) {
+    let remainCount = 81;
+    for (let y = 0; y < 9; y++) {
+        for (let x = 0; x < 9; x++) {
+            if (oldBoard[y][x].num == this.boards[y][x].num) {
+                remainCount--;
             }
         }
     }
-    return false;
+    console.log('change:' + remainCount);
+    return remainCount;
 }
 Sudoku.prototype.validateSquare = function (point) {
     let Grid = require('./Grid.js');
