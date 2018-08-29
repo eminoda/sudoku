@@ -111,41 +111,38 @@ Sudoku.prototype.excludeCalc = function () {
     }
 }
 
-Sudoku.prototype.oneByOnecandidateNumsCalc = function (nextCachePoint) {
-    if (this.cacheError) {
-        return;
-    }
-    if (nextCachePoint < 0) {
-        return;
-    }
-    for (let i = nextCachePoint; i < this.cachePoints.length; i++) {
+Sudoku.prototype.oneByOnecandidateNumsCalc = function () {
+    console.log('=== this.cachePoints.length=' + this.cachePoints.length);
+    for (let i = 0; i < this.cachePoints.length; i++) {
         let cachePoint = this.cachePoints[i];
-        let y = cachePoint.col;
-        let x = cachePoint.row;
-        console.log('[' + cachePoint.col + ',' + cachePoint.row + ']=' + cachePoint.candidateNums.length + ',' + cachePoint.tryTime);
-        this.boards[y][x].num = cachePoint.candidateNums[cachePoint.tryTime];
-        this.boards[y][x].tryTime = cachePoint.tryTime + 1;
-        console.debug('set:[' + cachePoint.col + ',' + cachePoint.row + ']=' + this.boards[cachePoint.col][cachePoint.row].num);
         try {
+            // 从历史面板获取历史候选区使用
+            this.boards[cachePoint.col][cachePoint.row] = cachePoint; //cachePoint.candidateNums[cachePoint.tryTime];
+            // 假设数值
+            this.boards[cachePoint.col][cachePoint.row].num = cachePoint.candidateNums[cachePoint.tryTime];
+            this.boards[cachePoint.col][cachePoint.row].tryTime++;
+            // 刷新面板
             this.excludeCalc();
-            this.resetCachePoints();
             this.oldBoard.push(this.getTempBoard(this.boards));
-            this.oneByOnecandidateNumsCalc(++nextCachePoint);
+            // 更新候选区
+            this.cachePoints = this.getCachePoints();
+            console.log('next::this.cachePoints.length=' + this.cachePoints.length);
+            this.oneByOnecandidateNumsCalc();
         } catch (err) {
             console.log('error:[' + cachePoint.col + ',' + cachePoint.row + ']=' + this.boards[cachePoint.col][cachePoint.row].num);
-            // 回溯上一级
-            cachePoint.tryTime++;
-            if (cachePoint.tryTime == cachePoint.candidateNums.length) {
-                // 恢复数据
-                nextCachePoint = nextCachePoint - 1;
-                this.oldBoard.splice(this.oldBoard.length - 1, 1);
-            }
-            // 更新数据
+            //  移除新增加的面板数据
+            this.oldBoard.push(this.getTempBoard(this.boards));
+            this.oldBoard.splice(this.oldBoard.length - 1, 1);
             this.boards = this.oldBoard[this.oldBoard.length - 1];
-            for (let j = 0; j < this.cachePoints.length; j++) {
-                this.cachePoints[j].tryTime = this.boards[this.cachePoints[i].col][this.cachePoints[i].row].tryTime;
-            }
-            this.oneByOnecandidateNumsCalc(nextCachePoint);
+            // 重设偏移位
+            this.boards[cachePoint.col][cachePoint.row].tryTime++;
+            // if (this.boards[cachePoint.col][cachePoint.row].tryTime == this.boards[cachePoint.col][cachePoint.row].candidateNums.length) {
+            //     this.oldBoard.splice(this.oldBoard.length - 1, 1);
+            //     this.boards = this.oldBoard[this.oldBoard.length - 1];
+            // }
+            this.cachePoints = this.getCachePoints();
+            console.log('error::this.cachePoints.length=' + this.cachePoints.length);
+            this.oneByOnecandidateNumsCalc();
         }
     }
 }
@@ -165,11 +162,12 @@ Sudoku.prototype.resetCachePoints = function () {
         this.boards[this.cachePoints[i].col][this.cachePoints[i].row].candidateNums = this.cachePoints[i].candidateNums;
     }
 }
-Sudoku.prototype.getCachePoints = function () {
+Sudoku.prototype.getCachePoints = function (boards) {
+    boards = boards || this.boards;
     let cachePoints = [];
     for (let y = 0; y < 9; y++) {
         for (let x = 0; x < 9; x++) {
-            let point = this.boards[y][x];
+            let point = boards[y][x];
             if (point.num) {
                 continue;
             }
