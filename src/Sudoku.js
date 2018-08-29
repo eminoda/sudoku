@@ -1,5 +1,6 @@
 let Point = require('./Point.js');
 let Grid = require('./Grid.js');
+var _ = require('lodash');
 
 function Sudoku(originData) {
     this.boards = (function (Point) {
@@ -13,9 +14,10 @@ function Sudoku(originData) {
         }
         return boards;
     }(require('./Point.js')));
+    this.oldBoard = [];
     this.ruleNums = [1, 2, 3, 4, 5, 6, 7, 8, 9];
     this.cachePoints = [];
-    this.branchs = []
+    this.cacheError = false;
 }
 /**
  * 根据lineNums，获取某行合法数值
@@ -86,16 +88,18 @@ Sudoku.prototype.calc = function () {
     let oldBoard = JSON.parse(JSON.stringify(this.boards));
     this.excludeCalc();
     if (!this.canCalcContinue(oldBoard)) {
-        this.saveCachePoints();
-        this.oneByOnecandidateNumsCalc();
+        this.cachePoints = this.getCachePoints();
+        let newCachePoints = this.createNewCachePoints(this.cachePoints);
+        this.oldBoard.push(this.getTempBoard(this.boards));
+        this.oneByOnecandidateNumsCalc(0, newCachePoints);
     }
 }
 Sudoku.prototype.excludeCalc = function () {
     for (let y = 0; y < 9; y++) {
         for (let x = 0; x < 9; x++) {
-            if (x == 3 && y == 1) {
-                console.log('debugger');
-            }
+            // if (x == 3 && y == 1) {
+            //     console.log('debugger');
+            // }
             let point = this.boards[y][x];
             this.removeDuplicateSquare(point)
             this.removeDuplicateRow(point);
@@ -106,46 +110,73 @@ Sudoku.prototype.excludeCalc = function () {
         }
     }
 }
-Sudoku.prototype.buildBranch = function () {
-    let tempBranchs = []
-    for (let i = 0; i < this.cachePoints.length; i++) {
-        tempBranchs.push(this.setBranch[this.cachePoints[i]]);
+
+Sudoku.prototype.oneByOnecandidateNumsCalc = function (nextCachePoint) {
+    if (this.cacheError) {
+        return;
     }
-    for (let b = 0; b < tempBranchs.length; b++) {
-        this.branchs.push({
-            index: b,
-            branchs: []
-        })
+    if (nextCachePoint < 0) {
+        return;
+    }
+    for (let i = nextCachePoint; i < this.cachePoints.length; i++) {
+        let cachePoint = this.cachePoints[i];
+        let y = cachePoint.col;
+        let x = cachePoint.row;
+        console.log('[' + cachePoint.col + ',' + cachePoint.row + ']=' + cachePoint.candidateNums.length + ',' + cachePoint.tryTime);
+        this.boards[y][x].num = cachePoint.candidateNums[cachePoint.tryTime];
+        this.boards[y][x].tryTime = cachePoint.tryTime + 1;
+        console.debug('set:[' + cachePoint.col + ',' + cachePoint.row + ']=' + this.boards[cachePoint.col][cachePoint.row].num);
+        try {
+            this.excludeCalc();
+            this.resetCachePoints();
+            this.oldBoard.push(this.getTempBoard(this.boards));
+            this.oneByOnecandidateNumsCalc(++nextCachePoint);
+        } catch (err) {
+            console.log('error:[' + cachePoint.col + ',' + cachePoint.row + ']=' + this.boards[cachePoint.col][cachePoint.row].num);
+            // 回溯上一级
+            cachePoint.tryTime++;
+            if (cachePoint.tryTime == cachePoint.candidateNums.length) {
+                // 恢复数据
+                nextCachePoint = nextCachePoint - 1;
+                this.oldBoard.splice(this.oldBoard.length - 1, 1);
+            }
+            // 更新数据
+            this.boards = this.oldBoard[this.oldBoard.length - 1];
+            for (let j = 0; j < this.cachePoints.length; j++) {
+                this.cachePoints[j].tryTime = this.boards[this.cachePoints[i].col][this.cachePoints[i].row].tryTime;
+            }
+            this.oneByOnecandidateNumsCalc(nextCachePoint);
+        }
     }
 }
-Sudoku.prototype.setBranch = function (point) {
-    let branchs = [];
-    for (let j = 0; j < point.candidateNums; j++) {
-        branchs.push({
-            row: point.row,
-            col: point.col,
-            num: point.candidateNums[j],
-            index: j
-        });
+Sudoku.prototype.getTempBoard = function (boards) {
+    return _.cloneDeep(boards)
+}
+// 创建新的缓存区
+Sudoku.prototype.createNewCachePoints = function (cachePoints) {
+    let newCachePoints = [];
+    for (let i = 0; i < cachePoints.length; i++) {
+        newCachePoints.push(cachePoints[i]);
     }
-    return branchs;
+    return newCachePoints;
 }
 Sudoku.prototype.resetCachePoints = function () {
     for (let i = 0; i < this.cachePoints.length; i++) {
-        this.boards[this.cachePoints[i].col][this.cachePoints[i].row].num = this.cachePoints[i].num;
+        this.boards[this.cachePoints[i].col][this.cachePoints[i].row].candidateNums = this.cachePoints[i].candidateNums;
     }
 }
-Sudoku.prototype.saveCachePoints = function () {
-    let oldBoard = JSON.parse(JSON.stringify(this.boards));
+Sudoku.prototype.getCachePoints = function () {
+    let cachePoints = [];
     for (let y = 0; y < 9; y++) {
         for (let x = 0; x < 9; x++) {
-            let point = oldBoard[y][x];
+            let point = this.boards[y][x];
             if (point.num) {
                 continue;
             }
-            this.cachePoints.push(point);
+            cachePoints.push(point);
         }
     }
+    return cachePoints;
 }
 Sudoku.prototype.canCalcContinue = function (oldBoard) {
     let remainCount = 81;
@@ -175,7 +206,7 @@ Sudoku.prototype.validateSquare = function (point) {
             appearNum++;
         }
         if (appearNum > 1) {
-            throw new Error('square:[' + point.row + ',' + point.col + ']=' + num);
+            throw new Error('square:[' + point.col + ',' + point.row + ']=' + num);
         }
     }
 }
@@ -187,7 +218,7 @@ Sudoku.prototype.validateRow = function (point) {
             appearNum++;
         }
         if (appearNum > 1) {
-            throw new Error('row:[' + point.row + ',' + point.col + ']=' + num);
+            throw new Error('row:[' + point.col + ',' + point.row + ']=' + num);
         }
     }
 }
@@ -199,7 +230,7 @@ Sudoku.prototype.validateCol = function (point) {
             appearNum++;
         }
         if (appearNum > 1) {
-            throw new Error('col:[' + point.row + ',' + point.col + ']=' + num);
+            throw new Error('col:[' + point.col + ',' + point.row + ']=' + num);
         }
     }
 }

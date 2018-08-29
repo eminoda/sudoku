@@ -8,9 +8,9 @@ function Point(row, col, num) {
     this.setCandidateNums = function (candidateNums) {
         this.candidateNums = candidateNums;
         if (candidateNums.length == 1) {
-            console.log('[' + row + ',' + col + ']=' + candidateNums);
+            console.log('[' + col + ',' + row + ']=' + candidateNums);
             this.num = candidateNums[0];
-            this.candidateNums = []
+            // this.candidateNums = []
         }
     }
     this.setTryTime = function () {

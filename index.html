@@ -11,8 +11,8 @@
         <button @click="calc()">calc</button>
         <div class="line" v-for="(yItem,yIndex) in boards">
             <div class="item" v-for="(xItem,xIndex) in yItem">
-                <span :class="xItem.status=='frozen'?'frozen':''" v-if="xItem.candidateNums.length<=1">{{xItem.num}}</span>
-                <span v-if="xItem.candidateNums.length>1">
+                <span :class="xItem.status=='frozen'?'frozen':''" v-if="xItem.num">{{xItem.num}}</span>
+                <span v-if="!xItem.num">
                     <span v-for="item in xItem.candidateNums">{{item}}</span>
                 </span>
             </div>
