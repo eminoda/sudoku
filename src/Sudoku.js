@@ -111,38 +111,45 @@ Sudoku.prototype.excludeCalc = function () {
     }
 }
 
-Sudoku.prototype.oneByOnecandidateNumsCalc = function () {
+Sudoku.prototype.oneByOnecandidateNumsCalc = function (currentIndex, newCachePoints) {
     console.log('=== this.cachePoints.length=' + this.cachePoints.length);
-    for (let i = 0; i < this.cachePoints.length; i++) {
+    for (let i = currentIndex; i < this.cachePoints.length; i++) {
         let cachePoint = this.cachePoints[i];
         try {
             // 从历史面板获取历史候选区使用
             this.boards[cachePoint.col][cachePoint.row] = cachePoint; //cachePoint.candidateNums[cachePoint.tryTime];
             // 假设数值
             this.boards[cachePoint.col][cachePoint.row].num = cachePoint.candidateNums[cachePoint.tryTime];
+            if (cachePoint.col == 1 && cachePoint.row == 3) {
+                console.log('debg');
+            }
             this.boards[cachePoint.col][cachePoint.row].tryTime++;
             // 刷新面板
             this.excludeCalc();
             this.oldBoard.push(this.getTempBoard(this.boards));
             // 更新候选区
-            this.cachePoints = this.getCachePoints();
+            // this.cachePoints = this.getCachePoints();
             console.log('next::this.cachePoints.length=' + this.cachePoints.length);
-            this.oneByOnecandidateNumsCalc();
+            this.oneByOnecandidateNumsCalc(++i);
         } catch (err) {
             console.log('error:[' + cachePoint.col + ',' + cachePoint.row + ']=' + this.boards[cachePoint.col][cachePoint.row].num);
             //  移除新增加的面板数据
             this.oldBoard.push(this.getTempBoard(this.boards));
             this.oldBoard.splice(this.oldBoard.length - 1, 1);
             this.boards = this.oldBoard[this.oldBoard.length - 1];
+            if (cachePoint.col == 1 && cachePoint.row == 3) {
+                console.log('debg');
+            }
             // 重设偏移位
             this.boards[cachePoint.col][cachePoint.row].tryTime++;
-            // if (this.boards[cachePoint.col][cachePoint.row].tryTime == this.boards[cachePoint.col][cachePoint.row].candidateNums.length) {
-            //     this.oldBoard.splice(this.oldBoard.length - 1, 1);
-            //     this.boards = this.oldBoard[this.oldBoard.length - 1];
-            // }
-            this.cachePoints = this.getCachePoints();
+            if (this.boards[cachePoint.col][cachePoint.row].tryTime == cachePoint.candidateNums.length) {
+                this.oldBoard.splice(this.oldBoard.length - 1, 1);
+                this.boards = this.oldBoard[this.oldBoard.length - 1];
+                i--;
+            }
+            // this.cachePoints = this.getCachePoints();
             console.log('error::this.cachePoints.length=' + this.cachePoints.length);
-            this.oneByOnecandidateNumsCalc();
+            this.oneByOnecandidateNumsCalc(i);
         }
     }
 }
