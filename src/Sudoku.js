@@ -89,9 +89,9 @@ Sudoku.prototype.calc = function () {
     this.excludeCalc();
     if (!this.canCalcContinue(oldBoard)) {
         this.cachePoints = [];
-        this.oldBoard.push(this.getTempBoard(this.boards));
+        // this.oldBoard.push(this.getTempBoard(this.boards));
         var newCachePoints = this.getCachePoints(oldBoard);
-        // this.oneByOnecandidateNumsCalc(0, newCachePoints);
+        this.oneByOnecandidateNumsCalc(0, newCachePoints);
     }
 }
 Sudoku.prototype.excludeCalc = function () {
@@ -134,54 +134,51 @@ Sudoku.prototype.oneByOnecandidateNumsCalc = function (currentIndex, cachePoints
             var num = cachePoint.candidateNums[cachePoint.tryTime];
             console.debug('cachePoint:' + '[' + cachePoint.col + ',' + cachePoint.row + '] , tryTime= ' + cachePoint.tryTime + ' ,arr= ' + cachePoint.candidateNums);
             // 以计算完毕
-            // if (!cachePoint.tryTime && this.boards[cachePoint.col][cachePoint.row].num) {
-            //     console.error('have num:' + num);
-            //     continue;
-            // }
+            if (!cachePoint.tryTime && this.boards[cachePoint.col][cachePoint.row].num == num) {
+                console.error('have num:' + num);
+                continue;
+            }
             console.log(this.boards[cachePoint.col][cachePoint.row].num + '==>' + num);
-            // this.boards[cachePoint.col][cachePoint.row].num = num;
+            this.boards[cachePoint.col][cachePoint.row].num = num;
             // 刷新面板
             this.excludeCalc();
-            // this.oldBoard.push(this.getTempBoard(this.boards));
+            this.oldBoard.push(this.getTempBoard(this.boards));
             this.oneByOnecandidateNumsCalc(++i, cachePoints);
         } catch (err) {
             console.error(err.message);
+
             this.oldBoard.push(this.getTempBoard(this.boards));
-            this.oldBoard.splice(this.oldBoard.length - 1, 1);
-            this.boards = this.oldBoard[this.oldBoard.length - 1];
-            this.boards[cachePoint.col][cachePoint.row].num = 0;
-            if (cachePoint.tryTime + 1 > cachePoint.candidateNums.length) {
-                throw new Error('over');
-            }
-            // 当前坐标无候选值，回溯
-            if (cachePoint.tryTime + 1 == cachePoint.candidateNums.length) {
-                // this.oldBoard.splice(this.oldBoard.length - 1, 1);
-                // this.boards = this.oldBoard[this.oldBoard.length - 1];
-                cachePoint.tryTime = 0;
-                i--;
-                cachePoints[i].tryTime++;
-                // if (cachePoints[i].tryTime >= cachePoints[i].candidateNums.length) {
-                //     i--
-                // }
-                i = this.goBackCachePoint(cachePoints, i);
+
+            this.setLastBoard();
+            if (cachePoint.tryTime + 1 < cachePoint.candidateNums.length) {
+                cachePoint.tryTime++;
                 this.oneByOnecandidateNumsCalc(i, cachePoints);
             } else {
-                cachePoint.tryTime++;
+                // 回溯
+                cachePoint.tryTime = 0;
+                i--;
+                i = this.goBackCachePoint(cachePoints, i);
                 this.oneByOnecandidateNumsCalc(i, cachePoints);
             }
         }
     }
 }
+Sudoku.prototype.setLastBoard = function () {
+    this.oldBoard.splice(this.oldBoard.length - 1, 1);
+    this.boards = this.oldBoard[this.oldBoard.length - 1];
+}
 Sudoku.prototype.goBackCachePoint = function (cachePoints, i) {
-    if (cachePoints[i].tryTime > cachePoints[i].candidateNums.length) {
-        this.oldBoard.splice(this.oldBoard.length - 1, 1);
-        this.boards = this.oldBoard[this.oldBoard.length - 1];
+    this.setLastBoard();
+    if (cachePoints[i].tryTime + 1 < cachePoints[i].candidateNums.length) {
+        cachePoints[i].tryTime++;
+        return i;
+    } else {
+        // 无候选参数，返回上一级，由于本级就是上一级产生再回到上一级
+        this.setLastBoard();
         cachePoints[i].tryTime = 0;
         i--;
         cachePoints[i].tryTime++;
         return this.goBackCachePoint(cachePoints, i);
-    } else {
-        return i;
     }
 }
 Sudoku.prototype.getTempBoard = function (boards) {
