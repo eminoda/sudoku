@@ -1,4 +1,4 @@
-let Point = require('./Point.js');
+var Point = require('./Point.js');
 let Grid = require('./Grid.js');
 var _ = require('lodash');
 
@@ -88,10 +88,10 @@ Sudoku.prototype.calc = function () {
     let oldBoard = JSON.parse(JSON.stringify(this.boards));
     this.excludeCalc();
     if (!this.canCalcContinue(oldBoard)) {
-        this.cachePoints = this.getCachePoints();
-        let newCachePoints = this.createNewCachePoints(this.cachePoints);
+        this.cachePoints = [];
         this.oldBoard.push(this.getTempBoard(this.boards));
-        this.oneByOnecandidateNumsCalc(0, newCachePoints);
+        var newCachePoints = this.getCachePoints(oldBoard);
+        // this.oneByOnecandidateNumsCalc(0, newCachePoints);
     }
 }
 Sudoku.prototype.excludeCalc = function () {
@@ -111,46 +111,77 @@ Sudoku.prototype.excludeCalc = function () {
     }
 }
 
-Sudoku.prototype.oneByOnecandidateNumsCalc = function (currentIndex, newCachePoints) {
-    console.log('=== this.cachePoints.length=' + this.cachePoints.length);
-    for (let i = currentIndex; i < this.cachePoints.length; i++) {
-        let cachePoint = this.cachePoints[i];
+Sudoku.prototype.createCachePoints = function (root, cachePoints) {
+    for (let i = 0; i < cachePoints.length; i++) {
+        let cachePoint = cachePoint[i];
+        cachePoints.splice(i, 1);
+        root[cachePoint.num] = [cachePoint, cachePoints]
+    }
+}
+Sudoku.prototype.buildTree = function (cachePoint, childs) {
+    for (let i = 0; i < cachePoint.candidateNums.length; i++) {
+
+    }
+}
+Sudoku.prototype.oneByOnecandidateNumsCalc = function (currentIndex, cachePoints) {
+    if (currentIndex < 0) {
+        throw new Error('data error');
+    }
+    for (let i = currentIndex; i < cachePoints.length; i++) {
+        var cachePoint = cachePoints[i];
         try {
-            // 从历史面板获取历史候选区使用
-            this.boards[cachePoint.col][cachePoint.row] = cachePoint; //cachePoint.candidateNums[cachePoint.tryTime];
             // 假设数值
-            this.boards[cachePoint.col][cachePoint.row].num = cachePoint.candidateNums[cachePoint.tryTime];
-            if (cachePoint.col == 1 && cachePoint.row == 3) {
-                console.log('debg');
-            }
-            this.boards[cachePoint.col][cachePoint.row].tryTime++;
+            var num = cachePoint.candidateNums[cachePoint.tryTime];
+            console.debug('cachePoint:' + '[' + cachePoint.col + ',' + cachePoint.row + '] , tryTime= ' + cachePoint.tryTime + ' ,arr= ' + cachePoint.candidateNums);
+            // 以计算完毕
+            // if (!cachePoint.tryTime && this.boards[cachePoint.col][cachePoint.row].num) {
+            //     console.error('have num:' + num);
+            //     continue;
+            // }
+            console.log(this.boards[cachePoint.col][cachePoint.row].num + '==>' + num);
+            // this.boards[cachePoint.col][cachePoint.row].num = num;
             // 刷新面板
             this.excludeCalc();
-            this.oldBoard.push(this.getTempBoard(this.boards));
-            // 更新候选区
-            // this.cachePoints = this.getCachePoints();
-            console.log('next::this.cachePoints.length=' + this.cachePoints.length);
-            this.oneByOnecandidateNumsCalc(++i);
+            // this.oldBoard.push(this.getTempBoard(this.boards));
+            this.oneByOnecandidateNumsCalc(++i, cachePoints);
         } catch (err) {
-            console.log('error:[' + cachePoint.col + ',' + cachePoint.row + ']=' + this.boards[cachePoint.col][cachePoint.row].num);
-            //  移除新增加的面板数据
+            console.error(err.message);
             this.oldBoard.push(this.getTempBoard(this.boards));
             this.oldBoard.splice(this.oldBoard.length - 1, 1);
             this.boards = this.oldBoard[this.oldBoard.length - 1];
-            if (cachePoint.col == 1 && cachePoint.row == 3) {
-                console.log('debg');
+            this.boards[cachePoint.col][cachePoint.row].num = 0;
+            if (cachePoint.tryTime + 1 > cachePoint.candidateNums.length) {
+                throw new Error('over');
             }
-            // 重设偏移位
-            this.boards[cachePoint.col][cachePoint.row].tryTime++;
-            if (this.boards[cachePoint.col][cachePoint.row].tryTime == cachePoint.candidateNums.length) {
-                this.oldBoard.splice(this.oldBoard.length - 1, 1);
-                this.boards = this.oldBoard[this.oldBoard.length - 1];
+            // 当前坐标无候选值，回溯
+            if (cachePoint.tryTime + 1 == cachePoint.candidateNums.length) {
+                // this.oldBoard.splice(this.oldBoard.length - 1, 1);
+                // this.boards = this.oldBoard[this.oldBoard.length - 1];
+                cachePoint.tryTime = 0;
                 i--;
+                cachePoints[i].tryTime++;
+                // if (cachePoints[i].tryTime >= cachePoints[i].candidateNums.length) {
+                //     i--
+                // }
+                i = this.goBackCachePoint(cachePoints, i);
+                this.oneByOnecandidateNumsCalc(i, cachePoints);
+            } else {
+                cachePoint.tryTime++;
+                this.oneByOnecandidateNumsCalc(i, cachePoints);
             }
-            // this.cachePoints = this.getCachePoints();
-            console.log('error::this.cachePoints.length=' + this.cachePoints.length);
-            this.oneByOnecandidateNumsCalc(i);
         }
+    }
+}
+Sudoku.prototype.goBackCachePoint = function (cachePoints, i) {
+    if (cachePoints[i].tryTime > cachePoints[i].candidateNums.length) {
+        this.oldBoard.splice(this.oldBoard.length - 1, 1);
+        this.boards = this.oldBoard[this.oldBoard.length - 1];
+        cachePoints[i].tryTime = 0;
+        i--;
+        cachePoints[i].tryTime++;
+        return this.goBackCachePoint(cachePoints, i);
+    } else {
+        return i;
     }
 }
 Sudoku.prototype.getTempBoard = function (boards) {
@@ -174,7 +205,8 @@ Sudoku.prototype.getCachePoints = function (boards) {
     let cachePoints = [];
     for (let y = 0; y < 9; y++) {
         for (let x = 0; x < 9; x++) {
-            let point = boards[y][x];
+            let point = new Point(boards[y][x].row, boards[y][x].col, boards[y][x].num);
+            point.candidateNums = boards[y][x].candidateNums;
             if (point.num) {
                 continue;
             }
