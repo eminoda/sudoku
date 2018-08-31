@@ -87,10 +87,10 @@ Sudoku.prototype.removeDuplicateSquare = function (point) {
 Sudoku.prototype.calc = function () {
     let oldBoard = JSON.parse(JSON.stringify(this.boards));
     this.excludeCalc();
-    if (!this.canCalcContinue(oldBoard)) {
+    if (!this.canContinue(oldBoard)) {
         this.cachePoints = [];
-        // this.oldBoard.push(this.getTempBoard(this.boards));
-        var newCachePoints = this.getCachePoints(oldBoard);
+        var newCachePoints = this.getCachePoints(this.boards);
+        this.oldBoard.push(this.getTempBoard(this.boards));
         this.oneByOnecandidateNumsCalc(0, newCachePoints);
     }
 }
@@ -110,76 +110,68 @@ Sudoku.prototype.excludeCalc = function () {
         }
     }
 }
-
-Sudoku.prototype.createCachePoints = function (root, cachePoints) {
-    for (let i = 0; i < cachePoints.length; i++) {
-        let cachePoint = cachePoint[i];
-        cachePoints.splice(i, 1);
-        root[cachePoint.num] = [cachePoint, cachePoints]
-    }
-}
-Sudoku.prototype.buildTree = function (cachePoint, childs) {
-    for (let i = 0; i < cachePoint.candidateNums.length; i++) {
-
-    }
-}
 Sudoku.prototype.oneByOnecandidateNumsCalc = function (currentIndex, cachePoints) {
     if (currentIndex < 0) {
         throw new Error('data error');
     }
+    if (this.isOver(JSON.parse(JSON.stringify(this.boards)))) {
+        return 'over'
+    }
     for (let i = currentIndex; i < cachePoints.length; i++) {
+        if (i == 0) {
+            console.log('start');
+        }
+        console.log('i=' + i + ',oldBoard=' + this.oldBoard.length);
         var cachePoint = cachePoints[i];
+        if (cachePoint.col == 3 && cachePoint.row == 1) {
+            console.log('debug');
+        }
         try {
             // 假设数值
             var num = cachePoint.candidateNums[cachePoint.tryTime];
-            console.debug('cachePoint:' + '[' + cachePoint.col + ',' + cachePoint.row + '] , tryTime= ' + cachePoint.tryTime + ' ,arr= ' + cachePoint.candidateNums);
-            // 以计算完毕
-            if (!cachePoint.tryTime && this.boards[cachePoint.col][cachePoint.row].num == num) {
-                console.error('have num:' + num);
+            console.debug('[' + cachePoint.col + ',' + cachePoint.row + ']==>' + num + '   ,[' + cachePoint.candidateNums + ']');
+            if (num == this.boards[cachePoint.col][cachePoint.row].num) {
+                try {
+                    this.excludeCalc();
+                } catch (err) {
+                    throw new Error('shit');
+                }
+                this.oldBoard.push(this.getTempBoard(this.boards));
+                cachePoint.tryTime = cachePoint.candidateNums.indexOf(num);
                 continue;
             }
-            console.log(this.boards[cachePoint.col][cachePoint.row].num + '==>' + num);
             this.boards[cachePoint.col][cachePoint.row].num = num;
-            // 刷新面板
             this.excludeCalc();
             this.oldBoard.push(this.getTempBoard(this.boards));
-            this.oneByOnecandidateNumsCalc(++i, cachePoints);
         } catch (err) {
             console.error(err.message);
-
             this.oldBoard.push(this.getTempBoard(this.boards));
-
-            this.setLastBoard();
-            if (cachePoint.tryTime + 1 < cachePoint.candidateNums.length) {
-                cachePoint.tryTime++;
-                this.oneByOnecandidateNumsCalc(i, cachePoints);
-            } else {
-                // 回溯
-                cachePoint.tryTime = 0;
-                i--;
-                i = this.goBackCachePoint(cachePoints, i);
-                this.oneByOnecandidateNumsCalc(i, cachePoints);
-            }
+            // 异常确认上级数据
+            let currentI = this.goBackCachePoint(cachePoints, i);
+            console.log('oldBoards.length=' + this.oldBoard.length);
+            return this.oneByOnecandidateNumsCalc(currentI, cachePoints);
         }
+    }
+}
+Sudoku.prototype.goBackCachePoint = function (cachePoints, i) {
+    console.debug('be back ---- i=' + i);
+    // 面板回退上一级
+    this.setLastBoard();
+    var lastCachePoint = cachePoints[i];
+    // 父级有候选值
+    if (lastCachePoint.tryTime + 1 < lastCachePoint.candidateNums.length) {
+        lastCachePoint.tryTime++;
+        return i;
+    } else {
+        // 父级重置次数，返回祖级
+        lastCachePoint.tryTime = 0;
+        i = i - 1;
+        return this.goBackCachePoint(cachePoints, i);
     }
 }
 Sudoku.prototype.setLastBoard = function () {
     this.oldBoard.splice(this.oldBoard.length - 1, 1);
     this.boards = this.oldBoard[this.oldBoard.length - 1];
-}
-Sudoku.prototype.goBackCachePoint = function (cachePoints, i) {
-    this.setLastBoard();
-    if (cachePoints[i].tryTime + 1 < cachePoints[i].candidateNums.length) {
-        cachePoints[i].tryTime++;
-        return i;
-    } else {
-        // 无候选参数，返回上一级，由于本级就是上一级产生再回到上一级
-        this.setLastBoard();
-        cachePoints[i].tryTime = 0;
-        i--;
-        cachePoints[i].tryTime++;
-        return this.goBackCachePoint(cachePoints, i);
-    }
 }
 Sudoku.prototype.getTempBoard = function (boards) {
     return _.cloneDeep(boards)
@@ -212,7 +204,7 @@ Sudoku.prototype.getCachePoints = function (boards) {
     }
     return cachePoints;
 }
-Sudoku.prototype.canCalcContinue = function (oldBoard) {
+Sudoku.prototype.canContinue = function (oldBoard) {
     let remainCount = 81;
     for (let y = 0; y < 9; y++) {
         for (let x = 0; x < 9; x++) {
@@ -221,8 +213,20 @@ Sudoku.prototype.canCalcContinue = function (oldBoard) {
             }
         }
     }
-    console.log('change:' + remainCount);
+    // console.log('change:' + remainCount);
     return remainCount;
+}
+Sudoku.prototype.isOver = function () {
+    let remainCount = 0;
+    for (let y = 0; y < 9; y++) {
+        for (let x = 0; x < 9; x++) {
+            if (this.boards[y][x].num) {
+                remainCount++;
+            }
+        }
+    }
+    // console.log('change:' + remainCount);
+    return remainCount == 81;
 }
 Sudoku.prototype.validateSquare = function (point) {
     let Grid = require('./Grid.js');

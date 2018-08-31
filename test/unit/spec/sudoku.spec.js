@@ -1,6 +1,7 @@
 const Sudoku = require('../../../src/Sudoku');
 const Grid = require('../../../src/Grid');
 const Point = require('../../../src/Point');
+const _ = require('lodash');
 var originData = [
     [3, 0, 0, 2, 8, 0, 4, 0, 5],
     [0, 2, 0, 0, 0, 0, 7, 0, 0],
@@ -66,21 +67,14 @@ describe('Test sudoku', () => {
         sudoku.removeDuplicateSquare(point)
         expect(point.candidateNums).toEqual([6, 7])
     })
-    test('Sudoku canCalcContinue', () => {
-        let sudoku = new Sudoku(originData);
-        let oldBoard = JSON.parse(JSON.stringify(sudoku.boards));
-        let point = sudoku.boards[0][1];
-        sudoku.excludeCalc();
-        expect(sudoku.canCalcContinue(oldBoard)).toEqual(3)
-    })
-    test('Sudoku canCalcContinue', () => {
-        let sudoku = new Sudoku(originData);
-        let point = sudoku.boards[0][1];
-        sudoku.removeDuplicateRow(point);
-        sudoku.removeDuplicateCol(point);
-        sudoku.removeDuplicateSquare(point);
-        sudoku.saveCachePoints();
-        sudoku.buildBranch();
-        expect(sudoku.branchs).toEqual(3)
+    test('test DeepClone', () => {
+        var testArr = [];
+        var test = {
+            name: 11
+        }
+        var testCopy = _.cloneDeep(test);
+        testArr.push(testCopy);
+        test.name = 22;
+        expect(testArr[0].name).toEqual(11);
     })
 });
