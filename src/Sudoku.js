@@ -85,13 +85,12 @@ Sudoku.prototype.removeDuplicateSquare = function (point) {
 }
 
 Sudoku.prototype.calc = function () {
-    let oldBoard = JSON.parse(JSON.stringify(this.boards));
     this.excludeCalc();
-    if (!this.canContinue(oldBoard)) {
+    if (!this.canContinue(this.boards)) {
         this.cachePoints = [];
         var newCachePoints = this.getCachePoints(this.boards);
-        this.oldBoard.push(this.getTempBoard(this.boards));
-        this.oneByOnecandidateNumsCalc(0, newCachePoints);
+        this.oldBoard.push(_.cloneDeep(this.boards));
+        return this.oneByOnecandidateNumsCalc(0, newCachePoints);
     }
 }
 Sudoku.prototype.excludeCalc = function () {
@@ -115,7 +114,7 @@ Sudoku.prototype.oneByOnecandidateNumsCalc = function (currentIndex, cachePoints
         throw new Error('data error');
     }
     if (this.isOver(JSON.parse(JSON.stringify(this.boards)))) {
-        return 'over'
+        return this.boards
     }
     for (let i = currentIndex; i < cachePoints.length; i++) {
         if (i == 0) {
@@ -123,19 +122,14 @@ Sudoku.prototype.oneByOnecandidateNumsCalc = function (currentIndex, cachePoints
         }
         console.log('i=' + i + ',oldBoard=' + this.oldBoard.length);
         var cachePoint = cachePoints[i];
-        if (cachePoint.col == 3 && cachePoint.row == 1) {
+        if (cachePoint.col == 4 && cachePoint.row == 3) {
             console.log('debug');
         }
         try {
             // 假设数值
             var num = cachePoint.candidateNums[cachePoint.tryTime];
-            console.debug('[' + cachePoint.col + ',' + cachePoint.row + ']==>' + num + '   ,[' + cachePoint.candidateNums + ']');
+            console.log('[' + cachePoint.col + ',' + cachePoint.row + ']==>' + num + '   ,[' + cachePoint.candidateNums + ']');
             if (num == this.boards[cachePoint.col][cachePoint.row].num) {
-                try {
-                    this.excludeCalc();
-                } catch (err) {
-                    throw new Error('shit');
-                }
                 this.oldBoard.push(this.getTempBoard(this.boards));
                 cachePoint.tryTime = cachePoint.candidateNums.indexOf(num);
                 continue;
@@ -154,7 +148,7 @@ Sudoku.prototype.oneByOnecandidateNumsCalc = function (currentIndex, cachePoints
     }
 }
 Sudoku.prototype.goBackCachePoint = function (cachePoints, i) {
-    console.debug('be back ---- i=' + i);
+    console.log('be back ---- i=' + i);
     // 面板回退上一级
     this.setLastBoard();
     var lastCachePoint = cachePoints[i];
@@ -171,18 +165,12 @@ Sudoku.prototype.goBackCachePoint = function (cachePoints, i) {
 }
 Sudoku.prototype.setLastBoard = function () {
     this.oldBoard.splice(this.oldBoard.length - 1, 1);
-    this.boards = this.oldBoard[this.oldBoard.length - 1];
+    // shit
+    this.boards = _.cloneDeep(this.oldBoard[this.oldBoard.length - 1]);
 }
 Sudoku.prototype.getTempBoard = function (boards) {
-    return _.cloneDeep(boards)
-}
-// 创建新的缓存区
-Sudoku.prototype.createNewCachePoints = function (cachePoints) {
-    let newCachePoints = [];
-    for (let i = 0; i < cachePoints.length; i++) {
-        newCachePoints.push(cachePoints[i]);
-    }
-    return newCachePoints;
+    return _.cloneDeep(boards);
+    // return JSON.parse(JSON.stringify(boards));
 }
 Sudoku.prototype.resetCachePoints = function () {
     for (let i = 0; i < this.cachePoints.length; i++) {
@@ -195,7 +183,7 @@ Sudoku.prototype.getCachePoints = function (boards) {
     for (let y = 0; y < 9; y++) {
         for (let x = 0; x < 9; x++) {
             let point = new Point(boards[y][x].row, boards[y][x].col, boards[y][x].num);
-            point.candidateNums = boards[y][x].candidateNums;
+            point.candidateNums = _.cloneDeep(boards[y][x].candidateNums);
             if (point.num) {
                 continue;
             }
