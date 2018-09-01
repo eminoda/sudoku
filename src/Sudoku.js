@@ -1,6 +1,6 @@
 var Point = require('./Point.js');
-let Grid = require('./Grid.js');
-var _ = require('lodash');
+var Box = require('./Box.js');
+let _ = require('lodash');
 
 function Sudoku(originData) {
     this.boards = (function (Point) {
@@ -13,7 +13,7 @@ function Sudoku(originData) {
             boards.push(line);
         }
         return boards;
-    }(require('./Point.js')));
+    }(Point));
     this.oldBoard = [];
     this.ruleNums = [1, 2, 3, 4, 5, 6, 7, 8, 9];
     this.cachePoints = [];
@@ -72,11 +72,11 @@ Sudoku.prototype.removeDuplicateCol = function (point) {
 }
 Sudoku.prototype.removeDuplicateSquare = function (point) {
     if (!point.num) {
-        let Grid = require('./Grid.js');
-        let startPointInGrid = new Grid(point.row, point.col).startPointInGrid;
+        let Box = require('./Box.js');
+        let startPointInBox = new Box(point.row, point.col).startPointInBox;
         let originNums = []
-        for (let y = startPointInGrid.col; y < startPointInGrid.col + 3; y++) {
-            for (let x = startPointInGrid.row; x < startPointInGrid.row + 3; x++) {
+        for (let y = startPointInBox.col; y < startPointInBox.col + 3; y++) {
+            for (let x = startPointInBox.row; x < startPointInBox.row + 3; x++) {
                 this.boards[y][x].num && originNums.push(this.boards[y][x].num);
             }
         }
@@ -96,13 +96,12 @@ Sudoku.prototype.calc = function () {
 Sudoku.prototype.excludeCalc = function () {
     for (let y = 0; y < 9; y++) {
         for (let x = 0; x < 9; x++) {
-            // if (x == 3 && y == 1) {
-            //     console.log('debugger');
-            // }
             let point = this.boards[y][x];
+            // 依次排除
             this.removeDuplicateSquare(point)
             this.removeDuplicateRow(point);
             this.removeDuplicateCol(point);
+            // 校验
             this.validateSquare(point);
             this.validateRow(point);
             this.validateCol(point);
@@ -117,30 +116,28 @@ Sudoku.prototype.oneByOnecandidateNumsCalc = function (currentIndex, cachePoints
         return this.boards
     }
     for (let i = currentIndex; i < cachePoints.length; i++) {
-        if (i == 0) {
-            console.log('start');
-        }
-        console.log('i=' + i + ',oldBoard=' + this.oldBoard.length);
+        // console.log('i=' + i + ',oldBoard=' + this.oldBoard.length);
         var cachePoint = cachePoints[i];
-        if (cachePoint.col == 4 && cachePoint.row == 3) {
-            console.log('debug');
-        }
         try {
             // 假设数值
             var num = cachePoint.candidateNums[cachePoint.tryTime];
             console.log('[' + cachePoint.col + ',' + cachePoint.row + ']==>' + num + '   ,[' + cachePoint.candidateNums + ']');
+            // 上轮计算已得出坐标num，不必再次使用排除法计算
             if (num == this.boards[cachePoint.col][cachePoint.row].num) {
+                // 记录历史面板
                 this.oldBoard.push(this.getTempBoard(this.boards));
+                // 设置该point候选数组下标
                 cachePoint.tryTime = cachePoint.candidateNums.indexOf(num);
                 continue;
             }
             this.boards[cachePoint.col][cachePoint.row].num = num;
+            // 排除法
             this.excludeCalc();
             this.oldBoard.push(this.getTempBoard(this.boards));
         } catch (err) {
             console.error(err.message);
             this.oldBoard.push(this.getTempBoard(this.boards));
-            // 异常确认上级数据
+            // 回退历史面板数据
             let currentI = this.goBackCachePoint(cachePoints, i);
             console.log('oldBoards.length=' + this.oldBoard.length);
             return this.oneByOnecandidateNumsCalc(currentI, cachePoints);
@@ -152,12 +149,13 @@ Sudoku.prototype.goBackCachePoint = function (cachePoints, i) {
     // 面板回退上一级
     this.setLastBoard();
     var lastCachePoint = cachePoints[i];
-    // 父级有候选值
+    // 父级point 存在候选值
     if (lastCachePoint.tryTime + 1 < lastCachePoint.candidateNums.length) {
+        // 下标后置
         lastCachePoint.tryTime++;
         return i;
     } else {
-        // 父级重置次数，返回祖级
+        // 父级重置下标，返回祖级
         lastCachePoint.tryTime = 0;
         i = i - 1;
         return this.goBackCachePoint(cachePoints, i);
@@ -217,11 +215,11 @@ Sudoku.prototype.isOver = function () {
     return remainCount == 81;
 }
 Sudoku.prototype.validateSquare = function (point) {
-    let Grid = require('./Grid.js');
-    let startPointInGrid = new Grid(point.row, point.col).startPointInGrid;
+    let Box = require('./Box.js');
+    let startPointInBox = new Box(point.row, point.col).startPointInBox;
     let originNums = []
-    for (let y = startPointInGrid.col; y < 3; y++) {
-        for (let x = startPointInGrid.row; x < 3; x++) {
+    for (let y = startPointInBox.col; y < 3; y++) {
+        for (let x = startPointInBox.row; x < 3; x++) {
             this.boards[y][x].num && originNums.push(this.boards[y][x].num);
         }
     }

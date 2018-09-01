@@ -1,5 +1,8 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+/**
+ * webpack v4.x
+ */
 module.exports = {
     mode: 'development',
     context: path.resolve(__dirname, '..', 'src'),
@@ -35,7 +38,7 @@ module.exports = {
     devServer: {
         contentBase: path.join(__dirname, 'dist'),
         compress: false,
-        host: '0.0.0.0',
-        port: 9000
+        host: '127.0.0.1',
+        port: 3000
     }
 };
