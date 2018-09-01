@@ -1,5 +1,5 @@
 const Sudoku = require('../../../src/Sudoku');
-const Grid = require('../../../src/Grid');
+var Box = require('../../../src/Box');
 const Point = require('../../../src/Point');
 const _ = require('lodash');
 var originData = [
@@ -23,10 +23,10 @@ describe('Test sudoku', () => {
         point.setCandidateNums([6, 7]);
         expect(point.candidateNums).toEqual([6, 7]);
     })
-    test('Grid create', () => {
-        let grid = new Grid(1, 2);
-        expect(grid.startPointInGrid.row).toEqual(0);
-        expect(grid.startPointInGrid.col).toEqual(0);
+    test('Box create', () => {
+        let box = new Box(1, 2);
+        expect(box.startPointInBox.row).toEqual(0);
+        expect(box.startPointInBox.col).toEqual(0);
     })
     test('Sudoku create', () => {
         let sudoku = new Sudoku(originData);

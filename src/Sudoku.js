@@ -1,5 +1,5 @@
-var Point = require('./Point.js');
-var Box = require('./Box.js');
+let Point = require('./Point.js');
+let Box = require('./Box.js');
 let _ = require('lodash');
 
 function Sudoku(originData) {
@@ -44,6 +44,7 @@ Sudoku.prototype.removeDuplicateNums = function (originNums, candidateNums) {
     }
     return candidateNums;
 }
+
 Sudoku.prototype.removeDuplicateRow = function (point) {
     if (!point.num) {
         let originNums = [];
@@ -83,7 +84,7 @@ Sudoku.prototype.removeDuplicateSquare = function (point) {
         point.setCandidateNums(this.removeDuplicateNums(originNums, point.candidateNums));
     }
 }
-
+// 计算
 Sudoku.prototype.calc = function () {
     this.excludeCalc();
     if (!this.canContinue(this.boards)) {
@@ -93,6 +94,7 @@ Sudoku.prototype.calc = function () {
         return this.oneByOnecandidateNumsCalc(0, newCachePoints);
     }
 }
+// 排除法
 Sudoku.prototype.excludeCalc = function () {
     for (let y = 0; y < 9; y++) {
         for (let x = 0; x < 9; x++) {
@@ -108,6 +110,7 @@ Sudoku.prototype.excludeCalc = function () {
         }
     }
 }
+// 回溯法--递归
 Sudoku.prototype.oneByOnecandidateNumsCalc = function (currentIndex, cachePoints) {
     if (currentIndex < 0) {
         throw new Error('data error');
@@ -144,6 +147,7 @@ Sudoku.prototype.oneByOnecandidateNumsCalc = function (currentIndex, cachePoints
         }
     }
 }
+// 返回上级候选坐标
 Sudoku.prototype.goBackCachePoint = function (cachePoints, i) {
     console.log('be back ---- i=' + i);
     // 面板回退上一级
@@ -161,6 +165,7 @@ Sudoku.prototype.goBackCachePoint = function (cachePoints, i) {
         return this.goBackCachePoint(cachePoints, i);
     }
 }
+// 重置面板数据
 Sudoku.prototype.setLastBoard = function () {
     this.oldBoard.splice(this.oldBoard.length - 1, 1);
     // shit
@@ -170,11 +175,7 @@ Sudoku.prototype.getTempBoard = function (boards) {
     return _.cloneDeep(boards);
     // return JSON.parse(JSON.stringify(boards));
 }
-Sudoku.prototype.resetCachePoints = function () {
-    for (let i = 0; i < this.cachePoints.length; i++) {
-        this.boards[this.cachePoints[i].col][this.cachePoints[i].row].candidateNums = this.cachePoints[i].candidateNums;
-    }
-}
+// 获取所有未确定的候选point
 Sudoku.prototype.getCachePoints = function (boards) {
     boards = boards || this.boards;
     let cachePoints = [];
@@ -190,6 +191,7 @@ Sudoku.prototype.getCachePoints = function (boards) {
     }
     return cachePoints;
 }
+// 数独是否运算结束，未结束则执行回溯法
 Sudoku.prototype.canContinue = function (oldBoard) {
     let remainCount = 81;
     for (let y = 0; y < 9; y++) {
@@ -202,6 +204,7 @@ Sudoku.prototype.canContinue = function (oldBoard) {
     // console.log('change:' + remainCount);
     return remainCount;
 }
+// 面板是否计算完
 Sudoku.prototype.isOver = function () {
     let remainCount = 0;
     for (let y = 0; y < 9; y++) {
